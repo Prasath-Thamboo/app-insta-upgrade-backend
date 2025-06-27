@@ -22,6 +22,6 @@ app.get('/followers', async (req, res) => {
   }
 });
 
-app.listen(5000, () => {
-  console.log('✅ Backend lancé sur http://localhost:5000');
+app.listen(process.env.PORT || 5000, () => {
+  console.log(`✅ Backend lancé sur le port ${process.env.PORT || 5000}`);
 });
