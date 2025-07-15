@@ -1,10 +1,33 @@
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
 require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const axios = require('axios');
+
 
 const app = express();
+const PORT = 3001;
+
 app.use(cors());
+app.use(express.json());
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const SECRET = process.env.JWT_SECRET;
+
+app.post('/login', (req, res) => {
+  const { password } = req.body;
+
+  if (password === ADMIN_PASSWORD) {
+    const token = jwt.sign({ user: 'admin' }, SECRET, { expiresIn: '1h' });
+    return res.json({ token });
+  }
+
+  res.status(401).json({ message: 'Mot de passe incorrect' });
+});
+
+app.listen(PORT, () => {
+  console.log(`✅ Backend en écoute sur http://localhost:${PORT}`);
+});
 
 app.get('/followers', async (req, res) => {
   try {
@@ -20,8 +43,4 @@ app.get('/followers', async (req, res) => {
     console.error('Erreur Instagram API :', error.response?.data || error.message);
     res.status(500).json({ error: 'Erreur lors de la récupération des followers' });
   }
-});
-
-app.listen(process.env.PORT || 5000, () => {
-  console.log(`✅ Backend lancé sur le port ${process.env.PORT || 5000}`);
 });
