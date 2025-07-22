@@ -12,18 +12,20 @@ app.use(cors());
 app.use(express.json());
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME; 
 const SECRET = process.env.JWT_SECRET;
 
 app.post('/login', (req, res) => {
-  const { password } = req.body;
+  const { username, password } = req.body;
 
-  if (password === ADMIN_PASSWORD) {
-    const token = jwt.sign({ user: 'admin' }, SECRET, { expiresIn: '1h' });
+  if (username === process.env.ADMIN_USERNAME && password === process.env.ADMIN_PASSWORD) {
+    const token = jwt.sign({ user: username }, SECRET, { expiresIn: '1h' });
     return res.json({ token });
   }
 
-  res.status(401).json({ message: 'Mot de passe incorrect' });
+  res.status(401).json({ message: 'Identifiant ou mot de passe incorrect' });
 });
+
 
 app.listen(PORT, () => {
   console.log(`✅ Backend en écoute sur http://localhost:${PORT}`);
