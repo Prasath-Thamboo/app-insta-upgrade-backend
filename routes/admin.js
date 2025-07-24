@@ -1,5 +1,6 @@
+// routes/admin.js
 const express = require('express');
-const router = express.Router(); // ✅ Ajouté !
+const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const isAdmin = require('../middleware/isAdmin');
@@ -61,5 +62,26 @@ router.put('/users/:id', auth, isAdmin, async (req, res) => {
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
+// ✅ Mettre à jour le token Instagram d’un utilisateur
+router.put('/users/:id/token', auth, isAdmin, async (req, res) => {
+  const { instagramToken } = req.body;
+
+  if (instagramToken === undefined) {
+  return res.status(400).json({ message: 'Token requis' });
+  }
+
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+    user.instagramToken = instagramToken;
+    await user.save();
+
+    res.json({ message: 'Token Instagram mis à jour' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+  });
 
 module.exports = router;
