@@ -8,6 +8,8 @@ const adminRoutes = require('./routes/admin'); // ✅ Ajout de la route admin
 const User = require('./models/User');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
+const path = require('path');
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -56,3 +58,7 @@ app.get('/api/followers', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Backend en écoute sur http://localhost:${PORT}`);
 });
+
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+

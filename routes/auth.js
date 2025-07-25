@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const upload = require('../middleware/upload');
+
 
 // ✅ Inscription
 router.post('/register', async (req, res) => {
@@ -104,8 +106,9 @@ router.get('/followers', auth, async (req, res) => {
 // ✅ Obtenir les infos du profil
 router.get('/me', auth, async (req, res) => {
   try {
-    const { username, email, instagramToken, role } = req.user;
-    res.json({ username, email, instagramToken, role });
+    const { username, email, instagramToken, role, profilePicture } = req.user;
+    res.json({ username, email, instagramToken, role, profilePicture });
+
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur' });
   }
@@ -146,5 +149,33 @@ router.delete('/delete-account', auth, async (req, res) => {
     res.status(500).json({ message: 'Erreur lors de la suppression du compte' });
   }
 });
+
+// PUT /api/update-profile-picture
+router.put('/update-profile-picture', auth, async (req, res) => {
+  const { profilePicture } = req.body;
+
+  try {
+    req.user.profilePicture = profilePicture;
+    await req.user.save();
+    res.json({ message: 'Photo de profil mise à jour' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+
+// ✅ Upload d'une photo de profil
+router.post('/upload-profile-picture', auth, upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'Aucune image envoyée' });
+
+  try {
+    req.user.profilePicture = `http://localhost:3001/uploads/${req.file.filename}`;
+    await req.user.save();
+    res.json({ message: 'Photo de profil mise à jour', url: req.user.profilePicture });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
 
 module.exports = router;

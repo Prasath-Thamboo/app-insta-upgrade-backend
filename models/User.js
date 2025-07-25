@@ -12,6 +12,12 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
+  profilePicture: {
+  type: String, // URL ou base64
+  default: '',  // ou une URL d'image par défaut
+  },
+  
+
 });
 
 module.exports = mongoose.model('User', userSchema);
