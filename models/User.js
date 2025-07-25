@@ -16,7 +16,12 @@ const userSchema = new mongoose.Schema({
   type: String, // URL ou base64
   default: '',  // ou une URL d'image par défaut
   },
-  
+  dashboardStyle: {
+  type: String,
+  default: 'classic'
+  },
+  isEmailVerified: { type: Boolean, default: false },
+  emailVerificationToken: { type: String }
 
 });
 
