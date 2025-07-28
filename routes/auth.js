@@ -8,6 +8,10 @@ const upload = require('../middleware/upload');
 const emailValidator = require('email-validator');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
+const checkSubscription = require('../middleware/checkSubscription');
+const fs = require('fs');
+const path = require('path');
+
 
 
 // ✅ Inscription
@@ -18,7 +22,6 @@ router.post('/register', async (req, res) => {
     password,
     instaEmail,
     instaPassword,
-    role = 'user'
   } = req.body;
 
   try {
@@ -50,15 +53,17 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       instaEmail,
       instaPassword: hashedInstaPassword,
-      role,
+      role: 'freeuser', // 👈 Par défaut
+      trialStart: Date.now(), // 👈 Début de l'essai gratuit
+      isSubscribed: false,
       emailVerificationToken,
       isEmailVerified: false
     });
 
     await user.save();
 
-    const verifyUrl = `http://localhost:3001/api/verify-email/${emailVerificationToken}`;
-    await sendEmail(email, 'Vérification de votre email', `Cliquez ici pour vérifier votre compte : ${verifyUrl}`);
+    const verifyUrl = `http://localhost:5173/verify-email/${emailVerificationToken}`;
+    await sendEmail(email, 'Vérification de votre email', `Cliquez ici pour valider votre compte : ${verifyUrl}`);
 
     res.status(201).json({ message: 'Inscription réussie. Veuillez vérifier votre email.' });
   } catch (err) {
@@ -66,6 +71,7 @@ router.post('/register', async (req, res) => {
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
 
 // ✅ Vérification de l'email
 router.get('/verify-email/:token', async (req, res) => {
@@ -78,7 +84,8 @@ router.get('/verify-email/:token', async (req, res) => {
     user.emailVerificationToken = undefined;
     await user.save();
 
-    res.status(200).send('Email vérifié avec succès. Vous pouvez maintenant vous connecter.');
+    res.status(200).json({ message: 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.' });
+
   } catch (err) {
     console.error('Erreur vérification :', err);
     res.status(500).send('Erreur serveur');
@@ -101,7 +108,7 @@ router.post('/resend-verification', async (req, res) => {
     await user.save();
 
     // Renvoyer l’email
-    const verifyUrl = `http://localhost:5173/verify-email?token=${verificationToken}`;
+    const verifyUrl = `http://localhost:5173/verify-email/${verificationToken}`;
     await sendEmail(email, 'Vérification de votre email', `Cliquez ici pour valider votre compte : ${verifyUrl}`);
 
     res.json({ message: "Email de confirmation renvoyé." });
@@ -153,7 +160,7 @@ router.post('/connect-instagram', auth, async (req, res) => {
 });
 
 // ✅ Récupérer le nombre de followers
-router.get('/followers', auth, async (req, res) => {
+router.get('/followers', auth, checkSubscription, async (req, res) => {
   const axios = require('axios');
   try {
     const response = await axios.get('https://graph.instagram.com/me', {
@@ -214,31 +221,30 @@ router.delete('/delete-account', auth, async (req, res) => {
   }
 });
 
-// PUT /api/update-profile-picture
-router.put('/update-profile-picture', auth, async (req, res) => {
-  const { profilePicture } = req.body;
-
-  try {
-    req.user.profilePicture = profilePicture;
-    await req.user.save();
-    res.json({ message: 'Photo de profil mise à jour' });
-  } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur' });
-  }
-});
-
-// ✅ Upload d'une photo de profil
+// ✅ Upload d'une photo de profil (remplace l'ancienne si existante)
 router.post('/upload-profile-picture', auth, upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'Aucune image envoyée' });
 
   try {
+    // Supprimer l’ancienne image si elle était dans /uploads/
+    if (req.user.profilePicture && req.user.profilePicture.includes('/uploads/')) {
+      const oldImagePath = path.join(__dirname, '..', req.user.profilePicture.replace('http://localhost:3001/', ''));
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
+      }
+    }
+
+    // Enregistrer la nouvelle image
     req.user.profilePicture = `http://localhost:3001/uploads/${req.file.filename}`;
     await req.user.save();
+
     res.json({ message: 'Photo de profil mise à jour', url: req.user.profilePicture });
   } catch (err) {
+    console.error('Erreur lors de la mise à jour de la photo :', err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
 
 // ✅ Modifier le style du dashboard
 router.put('/update-style', auth, async (req, res) => {

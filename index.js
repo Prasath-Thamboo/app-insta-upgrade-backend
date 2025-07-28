@@ -4,15 +4,18 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
-const adminRoutes = require('./routes/admin'); // ✅ Ajout de la route admin
+const adminRoutes = require('./routes/admin');
+const stripeRoutes = require('./routes/stripe'); // ✅ Ajout route Stripe
 const User = require('./models/User');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const path = require('path');
 
-
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// ✅ Routes Stripe
+app.use('/api/stripe', stripeRoutes);
 
 app.use(cors());
 app.use(express.json());
@@ -24,13 +27,14 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => console.log("✅ MongoDB connecté"))
   .catch(err => console.error("❌ Erreur MongoDB:", err));
 
-// Routes d'authentification (register, login, etc.)
+// Routes d'authentification
 app.use('/api', authRoutes);
 
 // ✅ Routes admin
 app.use('/api/admin', adminRoutes);
 
-// Route protégée pour récupérer les followers de l'utilisateur connecté
+
+// ✅ Followers Instagram protégés
 app.get('/api/followers', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -55,10 +59,9 @@ app.get('/api/followers', async (req, res) => {
   }
 });
 
+// ✅ Fichiers statiques (images profil)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.listen(PORT, () => {
   console.log(`🚀 Backend en écoute sur http://localhost:${PORT}`);
 });
-
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-

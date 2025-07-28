@@ -7,22 +7,44 @@ const userSchema = new mongoose.Schema({
   instaEmail: { type: String },
   instaPassword: { type: String },
   instagramToken: { type: String },
+
+  // ✅ Mise à jour des rôles
   role: {
     type: String,
-    enum: ['user', 'admin'],
-    default: 'user',
+    enum: ['user', 'admin', 'freeuser'],
+    default: 'freeuser',
   },
+
+  // ✅ Gestion de l’essai gratuit
+  trialStart: {
+    type: Date,
+    default: Date.now,
+  },
+
+  // ✅ Abonnement Stripe
+  isSubscribed: {
+    type: Boolean,
+    default: false,
+  },
+
+  // ✅ Apparence personnalisée
   profilePicture: {
-  type: String, // URL ou base64
-  default: '',  // ou une URL d'image par défaut
+    type: String,
+    default: '',
   },
   dashboardStyle: {
-  type: String,
-  default: 'classic'
+    type: String,
+    default: 'classic',
   },
-  isEmailVerified: { type: Boolean, default: false },
-  emailVerificationToken: { type: String }
 
+  // ✅ Vérification email
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  emailVerificationToken: {
+    type: String,
+  },
 });
 
 module.exports = mongoose.model('User', userSchema);
