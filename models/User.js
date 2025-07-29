@@ -4,9 +4,9 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   username: { type: String, required: true },
   password: { type: String, required: true },
-  instaEmail: { type: String },
-  instaPassword: { type: String },
   instagramToken: { type: String },
+  instagramUserId: { type: String },
+
 
   // ✅ Mise à jour des rôles
   role: {

@@ -20,8 +20,6 @@ router.post('/register', async (req, res) => {
     email,
     username,
     password,
-    instaEmail,
-    instaPassword,
   } = req.body;
 
   try {
@@ -44,15 +42,12 @@ router.post('/register', async (req, res) => {
     if (exists) return res.status(400).json({ message: 'Utilisateur déjà existant' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const hashedInstaPassword = await bcrypt.hash(instaPassword, 10);
     const emailVerificationToken = crypto.randomBytes(32).toString('hex');
 
     const user = new User({
       email,
       username,
       password: hashedPassword,
-      instaEmail,
-      instaPassword: hashedInstaPassword,
       role: 'freeuser', // 👈 Par défaut
       trialStart: Date.now(), // 👈 Début de l'essai gratuit
       isSubscribed: false,

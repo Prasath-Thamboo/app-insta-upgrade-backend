@@ -8,7 +8,7 @@ const isAdmin = require('../middleware/isAdmin');
 // ✅ Voir tous les utilisateurs
 router.get('/users', auth, isAdmin, async (req, res) => {
   try {
-    const users = await User.find().select('-password -instaPassword');
+    const users = await User.find().select('-password');
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur' });
@@ -28,7 +28,7 @@ router.delete('/users/:id', auth, isAdmin, async (req, res) => {
 // ✅ Changer le rôle d’un utilisateur
 router.put('/users/:id/role', auth, isAdmin, async (req, res) => {
   const { role } = req.body;
-  if (!['user', 'admin'].includes(role)) {
+  if (!['user', 'admin', 'freeuser'].includes(role)) {
     return res.status(400).json({ message: 'Rôle invalide' });
   }
 
@@ -46,7 +46,7 @@ router.put('/users/:id/role', auth, isAdmin, async (req, res) => {
 
 // ✅ Modifier les infos d’un utilisateur
 router.put('/users/:id', auth, isAdmin, async (req, res) => {
-  const { email, username, instaEmail } = req.body;
+  const { email, username} = req.body;
 
   try {
     const user = await User.findById(req.params.id);
@@ -54,7 +54,6 @@ router.put('/users/:id', auth, isAdmin, async (req, res) => {
 
     if (email) user.email = email;
     if (username) user.username = username;
-    if (instaEmail) user.instaEmail = instaEmail;
 
     await user.save();
     res.json({ message: 'Informations utilisateur mises à jour' });

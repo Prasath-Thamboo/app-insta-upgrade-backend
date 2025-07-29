@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const stripeRoutes = require('./routes/stripe');
+const instagramRoutes = require('./routes/instagram');
 const User = require('./models/User');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
@@ -24,6 +25,9 @@ app.use(cors({
 
 // ✅ Routes Stripe
 app.use('/api/stripe', stripeRoutes);
+
+// Routes Instagram
+app.use('/api/instagram', instagramRoutes); // ✅
 
 // ✅ Middleware JSON
 app.use(express.json());
