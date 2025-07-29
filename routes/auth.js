@@ -264,4 +264,33 @@ router.put('/update-style', auth, async (req, res) => {
   }
 });
 
+// ✅ Route de contact
+router.post('/contact', async (req, res) => {
+  const { firstname, lastname, email, message } = req.body;
+
+  if (!firstname || !lastname || !email || !message) {
+    return res.status(400).json({ message: 'Tous les champs sont requis.' });
+  }
+
+  try {
+    await sendEmail(
+      process.env.ADMIN_EMAIL,
+      `Message de ${firstname} ${lastname}`,
+      `
+        Nom : ${firstname} ${lastname}
+        Email : ${email}
+        
+        Message :
+        ${message}
+      `
+    );
+
+    res.json({ message: 'Votre message a été envoyé avec succès.' });
+  } catch (err) {
+    console.error("Erreur envoi email contact :", err);
+    res.status(500).json({ message: "Erreur lors de l'envoi de l'email." });
+  }
+});
+
+
 module.exports = router;
