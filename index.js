@@ -23,14 +23,17 @@ app.use(cors({
   credentials: true,
 }));
 
-// ✅ Routes Stripe
-app.use('/api/stripe', stripeRoutes);
-
-// Routes Instagram
-app.use('/api/instagram', instagramRoutes); // ✅
+// ✅ Routes StripeWebhook
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), require('./routes/stripeWebhook'));
 
 // ✅ Middleware JSON
 app.use(express.json());
+
+// ✅ Routes Stripe normales
+app.use('/api/stripe', stripeRoutes); 
+
+// ✅ Routes Instagram
+app.use('/api/instagram', instagramRoutes); // ✅
 
 // ✅ Connexion MongoDB
 mongoose.connect(process.env.MONGO_URI, {
