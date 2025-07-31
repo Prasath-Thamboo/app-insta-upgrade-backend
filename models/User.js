@@ -11,14 +11,18 @@ const userSchema = new mongoose.Schema({
   // ✅ Mise à jour des rôles
   role: {
     type: String,
-    enum: ['user', 'admin', 'freeuser'],
+    enum: ['user', 'admin', 'freeuser', 'testeur'],
     default: 'freeuser',
   },
 
   // ✅ Gestion de l’essai gratuit
+
   trialStart: {
     type: Date,
-    default: Date.now,
+  },
+  
+  trialEnds: {
+    type: Date,
   },
 
   // ✅ Abonnement Stripe

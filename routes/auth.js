@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const trialCheck = require('../middleware/trialCheck');
 const upload = require('../middleware/upload');
 const emailValidator = require('email-validator');
 const crypto = require('crypto');
@@ -155,7 +156,7 @@ router.post('/connect-instagram', auth, async (req, res) => {
 });
 
 // ✅ Récupérer le nombre de followers
-router.get('/followers', auth, checkSubscription, async (req, res) => {
+router.get('/followers', auth, checkSubscription, trialCheck, async (req, res) => {
   const axios = require('axios');
   try {
     const response = await axios.get('https://graph.instagram.com/me', {
@@ -171,7 +172,7 @@ router.get('/followers', auth, checkSubscription, async (req, res) => {
 });
 
 // ✅ Obtenir les infos du profil
-router.get('/me', auth, async (req, res) => {
+router.get('/me', auth, trialCheck, async (req, res) => {
   try {
     const { username, email, instagramToken, role, profilePicture, dashboardStyle } = req.user;
     res.json({ username, email, instagramToken, role, profilePicture, dashboardStyle });

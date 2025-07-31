@@ -7,6 +7,9 @@ const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const stripeRoutes = require('./routes/stripe');
 const instagramRoutes = require('./routes/instagram');
+const trialRoutes = require('./routes/trial');
+const trialCheck = require('./middleware/trialCheck');
+const auth = require('./middleware/auth');
 const User = require('./models/User');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
@@ -42,13 +45,17 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => console.log("✅ MongoDB connecté"))
   .catch(err => console.error("❌ Erreur MongoDB:", err));
 
-// ✅ Routes
+// ✅ Routes trial
 app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
 
+// ✅ Routes
+app.use('/api', trialRoutes);
+
+
 
 // ✅ Followers Instagram protégés
-app.get('/api/followers', async (req, res) => {
+app.get('/api/followers', auth, trialCheck, async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ message: 'Token manquant' });
