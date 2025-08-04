@@ -50,7 +50,6 @@ router.post('/register', async (req, res) => {
       username,
       password: hashedPassword,
       role: 'freeuser', // 👈 Par défaut
-      trialStart: Date.now(), // 👈 Début de l'essai gratuit
       isSubscribed: false,
       emailVerificationToken,
       isEmailVerified: false
@@ -143,17 +142,51 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
+// ✅ Mettre à jour son propre token Instagram (user, testeur, admin)
+router.post('/users/token', auth, async (req, res) => {
+  const { instagramToken } = req.body;
+
+  if (!instagramToken) {
+    return res.status(400).json({ message: 'Token requis' });
+  }
+
+  try {
+    req.user.instagramToken = instagramToken.trim();
+    await req.user.save();
+
+    res.json({ message: 'Token Instagram mis à jour avec succès' });
+  } catch (err) {
+    console.error('Erreur mise à jour token Instagram :', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+
+
 // ✅ Lier le token Instagram
 router.post('/connect-instagram', auth, async (req, res) => {
   const { instagramToken } = req.body;
+
   try {
-    req.user.instagramToken = instagramToken;
-    await req.user.save();
+    const user = await User.findById(req.user.id);
+
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+
+    // Bloquer les freeuser
+    if (!['user', 'testeur'].includes(user.role)) {
+      return res.status(403).json({ message: "Vous n’avez pas accès à cette fonctionnalité." });
+    }
+
+    user.instagramToken = instagramToken;
+    await user.save();
+
     res.json({ message: 'Token Instagram enregistré avec succès' });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
 
 // ✅ Récupérer le nombre de followers
 router.get('/followers', auth, checkSubscription, trialCheck, async (req, res) => {

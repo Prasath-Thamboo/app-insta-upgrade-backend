@@ -21,9 +21,17 @@ router.post('/start-trial', auth, async (req, res) => {
       return res.status(400).json({ message: "Vous êtes déjà abonné." });
     }
 
+    // Vérifie si l'utilisateur a déjà utilisé son essai gratuit
+    if (user.hasUsedTrial) {
+      return res.status(400).json({ message: "Vous avez déjà utilisé votre essai gratuit." });
+    }
+
     // ✅ Mise à jour du rôle et de la date de début d’essai
     user.role = 'testeur';
     user.trialStart = new Date();
+    user.trialEnds = new Date(user.trialStart);
+    user.trialEnds.setDate(user.trialEnds.getDate() + 7); // Ajoute 7 jours à la date de début
+    user.hasUsedTrial = true;  // Marque l'utilisateur comme ayant utilisé l'essai
     await user.save();
 
     res.json({ message: "Essai gratuit activé pour 7 jours." });
@@ -32,6 +40,7 @@ router.post('/start-trial', auth, async (req, res) => {
     res.status(500).json({ message: "Erreur lors de l'activation de l'essai." });
   }
 });
+
 
 
 module.exports = router;

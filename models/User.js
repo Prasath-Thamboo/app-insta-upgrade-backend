@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
   },
 
+   hasUsedTrial: {
+    type: Boolean,
+    default: false,
+  },
+
   // ✅ Abonnement Stripe
   isSubscribed: {
     type: Boolean,
