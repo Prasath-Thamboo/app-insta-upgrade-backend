@@ -16,8 +16,8 @@ router.post('/create-checkout-session', auth, async (req, res) => {
         quantity: 1,
       }],
       mode: 'subscription',
-      success_url: 'http://localhost:5173/payment-success',
-      cancel_url: 'http://localhost:5173/payment-cancelled',
+      success_url: `${process.env.FRONTEND_URL}/payment-success`,
+      cancel_url: `${process.env.FRONTEND_URL}/payment-cancelled`,
       metadata: {
         userId: req.user._id.toString(), // 👈 Pour mise à jour post-paiement
       }

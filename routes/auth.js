@@ -57,7 +57,7 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    const verifyUrl = `http://localhost:5173/verify-email/${emailVerificationToken}`;
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${emailVerificationToken}`;
     await sendEmail(email, 'Vérification de votre email', `Cliquez ici pour valider votre compte : ${verifyUrl}`);
 
     res.status(201).json({ message: 'Inscription réussie. Veuillez vérifier votre email.' });
@@ -103,7 +103,7 @@ router.post('/resend-verification', async (req, res) => {
     await user.save();
 
     // Renvoyer l’email
-    const verifyUrl = `http://localhost:5173/verify-email/${verificationToken}`;
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
     await sendEmail(email, 'Vérification de votre email', `Cliquez ici pour valider votre compte : ${verifyUrl}`);
 
     res.json({ message: "Email de confirmation renvoyé." });
@@ -252,22 +252,35 @@ router.delete('/delete-account', auth, async (req, res) => {
 
 // ✅ Upload d'une photo de profil (remplace l'ancienne si existante)
 router.post('/upload-profile-picture', auth, upload.single('image'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'Aucune image envoyée' });
+  if (!req.file) {
+    return res.status(400).json({ message: 'Aucune image envoyée' });
+  }
 
   try {
     // Supprimer l’ancienne image si elle était dans /uploads/
     if (req.user.profilePicture && req.user.profilePicture.includes('/uploads/')) {
-      const oldImagePath = path.join(__dirname, '..', req.user.profilePicture.replace('http://localhost:3001/', ''));
+      const oldImagePath = path.join(
+        __dirname,
+        '..',
+        req.user.profilePicture.replace(`${process.env.SERVER_URL}/`, '')
+      );
+
       if (fs.existsSync(oldImagePath)) {
         fs.unlinkSync(oldImagePath);
       }
     }
 
-    // Enregistrer la nouvelle image
-    req.user.profilePicture = `http://localhost:3001/uploads/${req.file.filename}`;
+    // Construire l'URL dynamiquement en fonction de l'environnement
+    const serverUrl = process.env.SERVER_URL || `${process.env.FRONTEND_URL}:${process.env.PORT || 3001}`;
+
+    // Enregistrer la nouvelle image avec l’URL complète
+    req.user.profilePicture = `${serverUrl}/uploads/${req.file.filename}`;
     await req.user.save();
 
-    res.json({ message: 'Photo de profil mise à jour', url: req.user.profilePicture });
+    res.json({
+      message: 'Photo de profil mise à jour',
+      url: req.user.profilePicture,
+    });
   } catch (err) {
     console.error('Erreur lors de la mise à jour de la photo :', err);
     res.status(500).json({ message: 'Erreur serveur' });

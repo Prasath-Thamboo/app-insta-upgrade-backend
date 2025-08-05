@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3001;
 
 // ✅ Middleware CORS DOIT être en premier
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: `${process.env.FRONTEND_URL}`,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -84,5 +84,5 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ✅ Lancement serveur
 app.listen(PORT, () => {
-  console.log(`🚀 Backend en écoute sur http://localhost:${PORT}`);
+  console.log(`🚀 Backend en écoute sur ${process.env.FRONTEND_URL}:${PORT}`);
 });
