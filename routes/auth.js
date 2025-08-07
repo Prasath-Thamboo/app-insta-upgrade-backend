@@ -334,5 +334,53 @@ router.post('/contact', async (req, res) => {
   }
 });
 
+// ✅ Mot de passe oublié 
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'Utilisateur non trouvé' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenExpire = Date.now() + 1000 * 60 * 60; // 1h
+
+    user.resetToken = token;
+    user.resetTokenExpire = tokenExpire;
+    await user.save();
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+    await sendEmail(user.email, 'Réinitialisation du mot de passe', `Cliquez ici pour réinitialiser votre mot de passe : ${resetLink}`);
+
+    res.json({ message: 'Lien de réinitialisation envoyé' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// Mot de passe reset
+
+router.post('/reset-password/:token', async (req, res) => {
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpire: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ message: 'Token invalide ou expiré' });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetToken = undefined;
+    user.resetTokenExpire = undefined;
+    await user.save();
+
+    res.json({ message: 'Mot de passe réinitialisé' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
 
 module.exports = router;
