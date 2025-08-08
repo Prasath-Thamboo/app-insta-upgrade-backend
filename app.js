@@ -1,4 +1,4 @@
-// index.js - Backend principal
+// app.js - Application Express sans démarrage du serveur
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -15,8 +15,7 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const path = require('path');
 
-const app = require('./app');
-const PORT = process.env.PORT || 3001;
+const app = express();
 
 // ✅ Middleware CORS DOIT être en premier
 app.use(cors({
@@ -34,27 +33,12 @@ app.use(express.json());
 
 // ✅ Routes Stripe normales
 app.use('/api/stripe', stripeRoutes); 
-
-// ✅ Routes Instagram
-app.use('/api/instagram', instagramRoutes); // ✅
-
-// ✅ Connexion MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log("✅ MongoDB connecté"))
-  .catch(err => console.error("❌ Erreur MongoDB:", err));
-
-// ✅ Routes trial
+app.use('/api/instagram', instagramRoutes);
 app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
-
-// ✅ Routes
 app.use('/api', trialRoutes);
 
-
-
-// ✅ Followers Instagram protégés
+// ✅ Route Followers
 app.get('/api/followers', auth, trialCheck, async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -82,7 +66,4 @@ app.get('/api/followers', auth, trialCheck, async (req, res) => {
 // ✅ Fichiers statiques
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ✅ Lancement serveur
-app.listen(PORT, () => {
-  console.log(`🚀 Backend en écoute sur ${process.env.FRONTEND_URL}:${PORT}`);
-});
+module.exports = app;
