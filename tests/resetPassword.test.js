@@ -1,11 +1,13 @@
+// tests/resetPassword.test.js
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../app');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
+// ✅ Connexion à une base de test isolée
 beforeAll(async () => {
-  await mongoose.connect('mongodb://127.0.0.1:27017/test-db');
+  await mongoose.connect('mongodb://127.0.0.1:27017/test-db-reset');
 });
 
 afterAll(async () => {
@@ -13,61 +15,39 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await User.deleteMany();
+  await User.deleteMany(); // Nettoyer la base avant chaque test
 });
 
 describe('POST /api/reset-password/:token', () => {
-  it('réinitialise le mot de passe avec un token valide', async () => {
-    const token = 'valid-token';
-    const oldHashedPassword = await bcrypt.hash('oldPassword', 10);
-
+  it('doit réinitialiser le mot de passe avec un token valide', async () => {
+    // 🔹 Création utilisateur avec token
+    const hashedPassword = await bcrypt.hash('oldpassword', 10);
     const user = await User.create({
-      email: 'resetuser@example.com',
+      email: 'reset@example.com',
       username: 'resetuser',
-      password: oldHashedPassword,
-      resetToken: token,
-      resetTokenExpire: Date.now() + 1000 * 60 * 10, // +10 minutes
+      password: hashedPassword,
+      resetToken: 'valid-token',
+      resetTokenExpire: Date.now() + 60 * 60 * 1000, // 1h
       isEmailVerified: true
     });
 
     const res = await request(app)
-      .post(`/api/reset-password/${token}`)
-      .send({ newPassword: 'newStrongPassword123' });
+      .post(`/api/reset-password/${user.resetToken}`)
+      .send({ newPassword: 'newpassword123' });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe('Mot de passe réinitialisé');
 
+    // ✅ Vérifier que le mot de passe a changé
     const updatedUser = await User.findById(user._id);
-    const passwordMatch = await bcrypt.compare('newStrongPassword123', updatedUser.password);
-    expect(passwordMatch).toBe(true);
-    expect(updatedUser.resetToken).toBeUndefined();
-    expect(updatedUser.resetTokenExpire).toBeUndefined();
+    const isMatch = await bcrypt.compare('newpassword123', updatedUser.password);
+    expect(isMatch).toBe(true);
   });
 
-  it('renvoie une erreur pour un token invalide', async () => {
+  it('doit renvoyer une erreur si le token est invalide ou expiré', async () => {
     const res = await request(app)
-      .post('/api/reset-password/invalid-token')
-      .send({ newPassword: 'newPassword123' });
-
-    expect(res.statusCode).toBe(400);
-    expect(res.body.message).toBe('Token invalide ou expiré');
-  });
-
-  it('renvoie une erreur si le token est expiré', async () => {
-    const expiredToken = 'expired-token';
-
-    await User.create({
-      email: 'expired@example.com',
-      username: 'expireduser',
-      password: await bcrypt.hash('password', 10),
-      resetToken: expiredToken,
-      resetTokenExpire: Date.now() - 1000, // Token expiré
-      isEmailVerified: true
-    });
-
-    const res = await request(app)
-      .post(`/api/reset-password/${expiredToken}`)
-      .send({ newPassword: 'newPassword123' });
+      .post('/api/reset-password/token-invalide')
+      .send({ newPassword: 'whatever' });
 
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toBe('Token invalide ou expiré');

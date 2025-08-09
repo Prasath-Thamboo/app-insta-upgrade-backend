@@ -3,12 +3,15 @@ const mongoose = require('mongoose');
 const app = require('../app');
 const User = require('../models/User');
 
-// 👇 Mock complet de sendEmail
+// 👇 Mock complet de sendEmail (pas d'email réel en test)
 jest.mock('../utils/sendEmail', () => jest.fn());
 const sendEmail = require('../utils/sendEmail');
 
 beforeAll(async () => {
-  await mongoose.connect('mongodb://127.0.0.1:27017/test-db');
+  // ⚠️ DB dédiée à ce fichier de tests pour éviter les collisions
+  await mongoose.connect('mongodb://127.0.0.1:27017/test-db-auth', {
+    // options v3/4 legacy tolérées, sinon laisse vide
+  });
 });
 
 afterAll(async () => {
@@ -16,28 +19,26 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await User.deleteMany();
-  sendEmail.mockClear(); // 👈 Reset du mock
+  await User.deleteMany({});
+  sendEmail.mockClear();
 });
 
-describe('POST /api/auth/forgot-password', () => {
-  const endpoint = '/api/auth/forgot-password';
+describe('POST /api/forgot-password', () => {
+  const endpoint = '/api/forgot-password'; // correspond à app.use("/api", authRoutes)
 
-  it('doit renvoyer un message de succès si l’utilisateur existe', async () => {
+  it("doit renvoyer un message de succès si l’utilisateur existe", async () => {
     // 👤 Créer un utilisateur test
     await User.create({
       email: 'testuser@example.com',
       username: 'testuser',
       password: 'hashedpassword',
-      isEmailVerified: true
+      isEmailVerified: true,
     });
 
     // 👨‍🔬 Mock de l’email
     sendEmail.mockResolvedValue({ accepted: ['testuser@example.com'] });
 
-    const res = await request(app)
-      .post(endpoint)
-      .send({ email: 'testuser@example.com' });
+    const res = await request(app).post(endpoint).send({ email: 'testuser@example.com' });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe('Lien de réinitialisation envoyé');
@@ -46,12 +47,15 @@ describe('POST /api/auth/forgot-password', () => {
       expect.any(String),
       expect.stringContaining('Cliquez ici')
     );
+
+    // Vérifie que le token a bien été posé
+    const updated = await User.findOne({ email: 'testuser@example.com' });
+    expect(updated.resetToken).toBeDefined();
+    expect(updated.resetTokenExpire).toBeDefined();
   });
 
-  it('doit renvoyer une erreur si l’utilisateur n’existe pas', async () => {
-    const res = await request(app)
-      .post(endpoint)
-      .send({ email: 'unknown@example.com' });
+  it("doit renvoyer une erreur si l’utilisateur n’existe pas", async () => {
+    const res = await request(app).post(endpoint).send({ email: 'unknown@example.com' });
 
     expect(res.statusCode).toBe(404);
     expect(res.body.message).toBe('Utilisateur non trouvé');
