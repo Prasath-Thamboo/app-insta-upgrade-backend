@@ -1,3 +1,4 @@
+// routes/auth.js
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -10,10 +11,8 @@ const emailValidator = require('email-validator');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 const checkSubscription = require('../middleware/checkSubscription');
-const fs = require('fs');
-const path = require('path');
-
-
+// ⬇️ Cloudinary
+const cloudinary = require('../config/cloudinary');
 
 // ✅ Inscription
 router.post('/register', async (req, res) => {
@@ -268,43 +267,58 @@ router.delete('/delete-account', auth, async (req, res) => {
   }
 });
 
-// ✅ Upload d'une photo de profil (remplace l'ancienne si existante)
+// ✅ Upload d'une photo de profil (Cloudinary overwrite)
 router.post('/upload-profile-picture', auth, upload.single('image'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'Aucune image envoyée' });
-  }
-
   try {
-    // Supprimer l’ancienne image si elle était dans /uploads/
-    if (req.user.profilePicture && req.user.profilePicture.includes('/uploads/')) {
-      const oldImagePath = path.join(
-        __dirname,
-        '..',
-        req.user.profilePicture.replace(`${process.env.SERVER_URL}/`, '')
+    if (!req.file) return res.status(400).json({ message: 'Aucune image envoyée' });
+
+    const publicId = `users/${req.user._id}/avatar`;
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          public_id: publicId,
+          overwrite: true,
+          invalidate: true,
+          resource_type: 'image',
+          transformation: [{ width: 512, height: 512, crop: 'fill', gravity: 'face' }],
+        },
+        (err, uploadResult) => (err ? reject(err) : resolve(uploadResult))
       );
+      stream.end(req.file.buffer);
+    });
 
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-    }
-
-    // Construire l'URL dynamiquement en fonction de l'environnement
-    const serverUrl = process.env.SERVER_URL || `${process.env.FRONTEND_URL}:${process.env.PORT || 3001}`;
-
-    // Enregistrer la nouvelle image avec l’URL complète
-    req.user.profilePicture = `${serverUrl}/uploads/${req.file.filename}`;
+    req.user.profilePicture = result.secure_url;          // URL versionnée (v###)
+    req.user.profilePicturePublicId = result.public_id;   // "users/<id>/avatar"
     await req.user.save();
 
-    res.json({
-      message: 'Photo de profil mise à jour',
-      url: req.user.profilePicture,
-    });
+    res.json({ message: 'Photo de profil mise à jour', url: req.user.profilePicture });
   } catch (err) {
+    if (err?.message === 'FORMAT_NOT_ALLOWED') {
+      return res.status(415).json({ message: 'Formats autorisés: JPG, PNG, WEBP' });
+    }
     console.error('Erreur lors de la mise à jour de la photo :', err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
+// ✅ Supprimer la photo de profil (Cloudinary)
+router.delete('/delete-profile-picture', auth, async (req, res) => {
+  try {
+    const publicId = req.user.profilePicturePublicId || `users/${req.user._id}/avatar`;
+
+    await cloudinary.uploader.destroy(publicId, { invalidate: true });
+
+    req.user.profilePicture = '';
+    req.user.profilePicturePublicId = '';
+    await req.user.save();
+
+    res.json({ message: 'Photo de profil supprimée' });
+  } catch (err) {
+    console.error('Suppression avatar :', err);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
 
 // ✅ Modifier le style du dashboard
 router.put('/update-style', auth, async (req, res) => {
@@ -377,7 +391,6 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // Mot de passe reset
-
 router.post('/reset-password/:token', async (req, res) => {
   const { token } = req.params;
   const { newPassword } = req.body;

@@ -1,18 +1,13 @@
 // middleware/upload.js
 const multer = require('multer');
-const path = require('path');
 
-// Config stockage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Dossier de stockage
+const upload = multer({
+  storage: multer.memoryStorage(), // 👈 on stocke en mémoire pour envoi direct vers Cloudinary
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (req, file, cb) => {
+    const ok = ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype);
+    cb(ok ? null : new Error('FORMAT_NOT_ALLOWED'), ok);
   },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext); // Nom unique avec extension
-  }
 });
-
-const upload = multer({ storage });
 
 module.exports = upload;

@@ -68,6 +68,6 @@ app.get('/api/followers', auth, trialCheck, async (req, res) => {
 });
 
 // ✅ Fichiers statiques
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+//app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 module.exports = app;

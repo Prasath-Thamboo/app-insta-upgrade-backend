@@ -30,7 +30,8 @@ const userSchema = new mongoose.Schema({
   subscriptionStart: { type: Date },                    // 👈 date d’activation
 
   // ✅ Apparence
-  profilePicture: { type: String, default: '' },
+  profilePicture: { type: String, default: '' },        // URL Cloudinary (versionnée)
+  profilePicturePublicId: { type: String, default: '' },// ex: "users/<userId>/avatar"
   dashboardStyle: { type: String, default: 'classic' },
 
   // ✅ Vérification email
