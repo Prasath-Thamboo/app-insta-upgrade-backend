@@ -12,7 +12,7 @@ const sendEmail = async (to, subject, text) => {
   });
 
   const info = await transporter.sendMail({
-    from: `"Mon App" <${process.env.EMAIL_USER}>`,
+    from: `"Counter-inst" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     text,
