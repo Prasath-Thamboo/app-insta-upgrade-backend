@@ -47,4 +47,17 @@ router.post('/create-checkout-session', auth, async (req, res) => {
   }
 });
 
+// Envoyer au portail Stripe pour la gestion de l'abonnement
+router.post('/create-customer-portal-session', auth, async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user?.stripeCustomerId) return res.status(400).json({ message: 'Client Stripe introuvable' });
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: user.stripeCustomerId,
+    return_url: `${process.env.FRONTEND_URL}/dashboard`,
+  });
+  res.json({ url: session.url });
+});
+
+
 module.exports = router;

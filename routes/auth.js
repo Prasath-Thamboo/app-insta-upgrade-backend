@@ -58,7 +58,7 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${emailVerificationToken}`;
-    await sendEmail(email, 'Vérification de votre email', `Cliquez ici pour valider votre compte : ${verifyUrl}`);
+    await sendEmail(email, 'Vérification de votre email', `Merci pour votre inscription ! Nous espèrons que vous trouverez votre bonheur dans notre application. Afin de continuer : ${verifyUrl}`);
 
     res.status(201).json({ message: 'Inscription réussie. Veuillez vérifier votre email.' });
   } catch (err) {
@@ -205,11 +205,29 @@ router.get('/followers', auth, checkSubscription, trialCheck, async (req, res) =
 });
 
 // ✅ Obtenir les infos du profil
-router.get('/me', auth, trialCheck, async (req, res) => {
+router.get('/me', auth, async (req, res) => {
   try {
-    const { username, email, instagramToken, role, profilePicture, dashboardStyle } = req.user;
-    res.json({ username, email, instagramToken, role, profilePicture, dashboardStyle });
+    // Selon ton middleware, l'ID peut être dans id, _id, ou directement req.user
+    const userId = req.user?.id || req.user?._id || req.user;
+    const user = await User.findById(userId)
+      .select('-password -resetToken -resetTokenExpire -emailVerificationToken');
+
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable' });
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      profilePicture: user.profilePicture || '',
+      dashboardStyle: user.dashboardStyle || 'classic',
+      instagramToken: user.instagramToken || '',
+      isSubscribed: !!user.isSubscribed,              // ✅ le champ manquant
+      stripeCustomerId: user.stripeCustomerId || null,
+      stripeSubscriptionId: user.stripeSubscriptionId || null,
+    });
   } catch (err) {
+    console.error('GET /api/me error:', err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
