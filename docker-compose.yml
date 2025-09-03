@@ -1,0 +1,41 @@
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: igfollowers-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017" # facultatif si tu veux y accéder depuis l’hôte
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: igfollowers-backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - ./.env   # 👉 mets tes variables ici
+    environment:
+      # Valeurs par défaut si oubliées (tu peux les enlever si déjà dans .env)
+      PORT: "3001"
+      MONGO_URI: "mongodb://mongo:27017/ig-followers"
+      SERVER_URL: "http://localhost:3001"
+      FRONTEND_URL: "http://localhost:5173"
+    ports:
+      - "3001:3001"
+    volumes:
+      # Persistance des uploads (images de profil)
+      - backend-uploads:/app/uploads
+
+volumes:
+  mongo-data:
+  backend-uploads:
