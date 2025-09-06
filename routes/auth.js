@@ -14,6 +14,21 @@ const checkSubscription = require('../middleware/checkSubscription');
 // ⬇️ Cloudinary
 const cloudinary = require('../config/cloudinary');
 
+// ⬇️ Templates email (NOUVEAU)
+const {
+  buildVerifyEmailText,
+  buildVerifyEmailHtml,
+  buildResetText,
+  buildResetHtml,
+  buildContactText,
+  buildContactHtml,
+} = require('../utils/emailTemplates');
+
+// Variables d’app (utilisées pour les emails)
+const APP_NAME = process.env.APP_NAME || 'VotreApp';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@votredomaine.com';
+const LOGO_URL = process.env.LOGO_URL || ''; // Laisse vide si pas de logo
+
 // ✅ Inscription
 router.post('/register', async (req, res) => {
   const {
@@ -57,7 +72,14 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${emailVerificationToken}`;
-    await sendEmail(email, 'Vérification de votre email', `Merci pour votre inscription ! Nous espèrons que vous trouverez votre bonheur dans notre application. Afin de continuer : ${verifyUrl}`);
+
+    // ⬇️ Email HTML + texte (NOUVEAU)
+    await sendEmail(
+      email,
+      'Activez votre compte 🚀',
+      buildVerifyEmailText(verifyUrl, APP_NAME, SUPPORT_EMAIL),
+      buildVerifyEmailHtml(verifyUrl, APP_NAME, SUPPORT_EMAIL, LOGO_URL)
+    );
 
     res.status(201).json({ message: 'Inscription réussie. Veuillez vérifier votre email.' });
   } catch (err) {
@@ -103,7 +125,12 @@ router.post('/resend-verification', async (req, res) => {
 
     // Renvoyer l’email
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
-    await sendEmail(email, 'Vérification de votre email', `Cliquez ici pour valider votre compte : ${verifyUrl}`);
+    await sendEmail(
+      email,
+      'Confirmez votre adresse email ✉️',
+      buildVerifyEmailText(verifyUrl, APP_NAME, SUPPORT_EMAIL),
+      buildVerifyEmailHtml(verifyUrl, APP_NAME, SUPPORT_EMAIL, LOGO_URL)
+    );
 
     res.json({ message: "Email de confirmation renvoyé." });
   } catch (err) {
@@ -350,13 +377,8 @@ router.post('/contact', async (req, res) => {
     await sendEmail(
       process.env.ADMIN_EMAIL,
       `Message de ${firstname} ${lastname}`,
-      `
-        Nom : ${firstname} ${lastname}
-        Email : ${email}
-        
-        Message :
-        ${message}
-      `
+      buildContactText({ firstname, lastname, email, message }),
+      buildContactHtml({ firstname, lastname, email, message })
     );
 
     res.json({ message: 'Votre message a été envoyé avec succès.' });
@@ -381,7 +403,12 @@ router.post('/forgot-password', async (req, res) => {
     await user.save();
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
-    await sendEmail(user.email, 'Réinitialisation du mot de passe', `Cliquez ici pour réinitialiser votre mot de passe : ${resetLink}`);
+    await sendEmail(
+      user.email,
+      'Réinitialisation du mot de passe',
+      buildResetText(resetLink, APP_NAME),
+      buildResetHtml(resetLink, APP_NAME)
+    );
 
     res.json({ message: 'Lien de réinitialisation envoyé' });
   } catch (err) {

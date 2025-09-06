@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-const sendEmail = async (to, subject, text) => {
+const sendEmail = async (to, subject, text, html) => {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: process.env.EMAIL_PORT || 587,
@@ -15,7 +15,8 @@ const sendEmail = async (to, subject, text) => {
     from: `"Counter-inst" <${process.env.EMAIL_USER}>`,
     to,
     subject,
-    text,
+    text, // fallback en texte brut (obligatoire pour certains clients mail)
+    html, // version HTML stylisée
   });
 
   console.log(`✅ Email envoyé à ${to}`);
@@ -23,4 +24,3 @@ const sendEmail = async (to, subject, text) => {
 };
 
 module.exports = sendEmail;
-
