@@ -1,0 +1,55 @@
+name: CI/CD Backend (Render via Deploy Hook)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: render-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci-cd:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Tests
+        run: npm test --if-present -- --ci
+
+      - name: Build (optionnel)
+        run: npm run build --if-present
+
+      # Déploiement Render déclenché uniquement si tout est vert
+      - name: Trigger Render Deploy
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          set -euo pipefail
+          # La plupart des hooks Render acceptent GET; s'il faut POST, remplace par: curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
+          echo "Triggering Render deploy…"
+          curl -fsS "$RENDER_DEPLOY_HOOK"
+          echo "✅ Hook envoyé à Render."
