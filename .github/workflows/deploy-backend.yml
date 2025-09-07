@@ -5,7 +5,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "counter-inst/backend/**"
+      - "backend/**"
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch:
 
@@ -19,7 +19,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: counter-inst/backend
+        working-directory: /backend
 
     steps:
       - name: Checkout
