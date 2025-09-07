@@ -1,28 +1,39 @@
-# backend/Dockerfile
-FROM node:20-alpine
-
-# Crée un user non-root pour de meilleures pratiques
-RUN addgroup -S app && adduser -S app -G app
-
+# ---- Build stage ----
+FROM node:20-alpine AS build
 WORKDIR /app
 
-# Copie uniquement les manifests pour optimiser le cache
+# Installer dépendances en mode prod
 COPY package*.json ./
+# Si tu utilises "npm ci" : fiable avec lockfile
+RUN npm ci --omit=dev
 
-# Installe en prod (si tu as besoin de dev deps pour build, remplace par `npm ci`)
-RUN npm ci --only=production
-
-# Copie le code
+# Copier le code
 COPY . .
 
-# Donne l’accès au dossier d’upload
-RUN mkdir -p /app/uploads && chown -R app:app /app
+# ---- Run stage ----
+FROM node:20-alpine
+ENV NODE_ENV=production
+WORKDIR /app
 
-USER app
+# User non-root
+RUN addgroup -S nodejs && adduser -S nodeapp -G nodejs
 
-# Variables d'env typiques (tu les passeras via .env / compose)
-# ENV NODE_ENV=production
+# Copie seulement ce qu'il faut
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app ./
 
-EXPOSE 3001
+# Variables runtime optionnelles (à surcharger au `docker run`)
+ENV PORT=8080
+ENV NODE_OPTIONS="--enable-source-maps"
 
-CMD ["node", "index.js"]
+# Expose le port
+EXPOSE 8080
+
+# Healthcheck (pointe vers /health de ton API)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD wget -qO- http://localhost:${PORT}/health || exit 1
+
+USER nodeapp
+
+# Démarrage (adapte si ton fichier d'entrée diffère)
+CMD ["node", "server.js"]

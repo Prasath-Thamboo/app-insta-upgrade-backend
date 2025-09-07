@@ -1,3 +1,4 @@
+// tests/emailVerification.test.js
 const request = require('supertest');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -35,11 +36,19 @@ describe('POST /api/resend-verification', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe('Email de confirmation renvoyé.');
-    expect(sendEmail).toHaveBeenCalledWith(
-      'test@example.com',
-      expect.any(String),
-      expect.stringContaining('Cliquez ici')
-    );
+
+    // ✅ Vérifie l'appel à sendEmail avec 4 arguments : to, subject, text, html
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    const [to, subject, text, html] = sendEmail.mock.calls[0];
+
+    expect(to).toBe('test@example.com');
+    expect(subject).toMatch(/(confirmez|vérification|activez)/i);
+
+    // Le texte brut doit contenir l'URL /verify-email/<token 64 hex>
+    expect(text).toMatch(/\/verify-email\/[a-f0-9]{64}/i);
+
+    // L'HTML doit contenir le lien bouton vers la route de vérification
+    expect(html).toMatch(/href="http:\/\/localhost:5173\/verify-email\/[a-f0-9]{64}"/i);
   });
 
   it('doit renvoyer une erreur si utilisateur déjà vérifié', async () => {

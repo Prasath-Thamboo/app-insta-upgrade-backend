@@ -45,12 +45,19 @@ describe('POST /api/register', () => {
     expect(user.emailVerificationToken).toBeDefined();
     expect(user.role).toBe('freeuser');
 
+    // ✅ Vérifie l'appel à sendEmail avec 4 arguments : to, subject, text, html
     expect(sendEmail).toHaveBeenCalledTimes(1);
-    expect(sendEmail).toHaveBeenCalledWith(
-      payload.email,
-      expect.stringMatching(/Vérification/i),
-      expect.stringContaining('/verify-email/')
-    );
+    const [to, subject, text, html] = sendEmail.mock.calls[0];
+
+    expect(to).toBe(payload.email);
+    // sujet flexible : gère "Vérification", "Activez votre compte", "Confirmez votre adresse", etc.
+    expect(subject).toMatch(/(vérification|activez|confirmez)/i);
+
+    // Le texte brut contient l'URL /verify-email/<token 64 hex>
+    expect(text).toMatch(/\/verify-email\/[a-f0-9]{64}/i);
+
+    // L'HTML contient le lien bouton vers la même route
+    expect(html).toMatch(/href="http:\/\/localhost:5173\/verify-email\/[a-f0-9]{64}"/i);
   });
 
   it('refuse un email invalide (400)', async () => {

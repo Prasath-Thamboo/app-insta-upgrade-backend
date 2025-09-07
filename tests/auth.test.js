@@ -42,11 +42,19 @@ describe('POST /api/forgot-password', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe('Lien de réinitialisation envoyé');
-    expect(sendEmail).toHaveBeenCalledWith(
-      'testuser@example.com',
-      expect.any(String),
-      expect.stringContaining('Cliquez ici')
-    );
+
+    // ✅ Vérifie l'appel avec 4 arguments: to, subject, text, html
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    const [to, subject, text, html] = sendEmail.mock.calls[0];
+
+    expect(to).toBe('testuser@example.com');
+    expect(subject).toMatch(/réinitialisation du mot de passe/i);
+
+    // le texte brut doit contenir une URL /reset-password/<token 64 hex>
+    expect(text).toMatch(/\/reset-password\/[a-f0-9]{64}/i);
+
+    // l'HTML doit contenir le lien bouton vers la même route
+    expect(html).toMatch(/href="http:\/\/localhost:5173\/reset-password\/[a-f0-9]{64}"/i);
 
     // Vérifie que le token a bien été posé
     const updated = await User.findOne({ email: 'testuser@example.com' });

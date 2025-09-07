@@ -43,6 +43,13 @@ app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', trialRoutes);
 
+
+// Route de santé
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+
 // ✅ Route Followers protégée
 app.get('/api/followers', auth, trialCheck, async (req, res) => {
   try {
