@@ -8,8 +8,10 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
 
   // ✅ Instagram
-  instagramToken: { type: String },
-  instagramUserId: { type: String },
+  fbUserLongLivedToken: { type: String }, // token utilisateur Facebook (long-lived)
+  instagramPageId: { type: String },      // Page FB liée à l’IG
+  instagramToken: { type: String },       // ⚠️ ici on stocke le PAGE access token
+  instagramUserId: { type: String }, 
 
   // ✅ Rôles
   role: {

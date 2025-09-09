@@ -51,25 +51,23 @@ app.get('/health', (req, res) => {
 
 
 // ✅ Route Followers protégée
-app.get('/api/followers', auth, trialCheck, async (req, res) => {
+app.get('/api/followers', auth, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ message: 'Token manquant' });
-
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user || !user.instagramToken) {
-      return res.status(401).json({ message: 'Token Instagram non trouvé' });
+    const user = await User.findById(req.user.id || req.user._id);
+    if (!user?.instagramUserId || !user?.instagramToken) {
+      return res.status(400).json({ message: "Instagram non connecté." });
     }
 
-    const response = await axios.get('https://graph.instagram.com/me', {
-      params: { fields: 'username,followers_count', access_token: user.instagramToken },
+    const { data } = await axios.get(`https://graph.facebook.com/v19.0/${user.instagramUserId}`, {
+      params: {
+        fields: 'username,followers_count',
+        access_token: user.instagramToken, // PAGE access token
+      },
     });
 
-    res.json(response.data);
+    res.json(data);
   } catch (error) {
-    console.error('Erreur Instagram API :', error.response?.data || error.message);
+    console.error('Erreur Instagram Graph API :', error?.response?.data || error.message);
     res.status(500).json({ error: 'Erreur lors de la récupération des followers' });
   }
 });
