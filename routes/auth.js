@@ -171,14 +171,14 @@ router.post('/login', async (req, res) => {
 
 // ✅ Mettre à jour son propre token Instagram (user, testeur, admin)
 router.post('/users/token', auth, async (req, res) => {
-  const { instagramToken } = req.body;
-
-  if (!instagramToken) {
+  let { instagramToken } = req.body;
+  instagramToken = (instagramToken || '').trim();
+  if (!instagramToken || instagramToken.toLowerCase() === 'null') {
     return res.status(400).json({ message: 'Token requis' });
   }
 
   try {
-    req.user.instagramToken = instagramToken.trim();
+    req.user.instagramToken = instagramToken;
     await req.user.save();
 
     res.json({ message: 'Token Instagram mis à jour avec succès' });
@@ -192,7 +192,8 @@ router.post('/users/token', auth, async (req, res) => {
 
 // ✅ Lier le token Instagram
 router.post('/connect-instagram', auth, async (req, res) => {
-  const { instagramToken } = req.body;
+  let { instagramToken } = req.body;
+  instagramToken = (instagramToken || '').trim();
 
   try {
     const user = await User.findById(req.user.id);
@@ -204,11 +205,16 @@ router.post('/connect-instagram', auth, async (req, res) => {
       return res.status(403).json({ message: "Vous n’avez pas accès à cette fonctionnalité." });
     }
 
+    if (!instagramToken || instagramToken.toLowerCase() === 'null') {
+      return res.status(400).json({ message: 'Token Instagram invalide.' });
+    }
+
     user.instagramToken = instagramToken;
     await user.save();
 
     res.json({ message: 'Token Instagram enregistré avec succès' });
   } catch (err) {
+    console.error('connect-instagram error:', err);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
@@ -217,16 +223,28 @@ router.post('/connect-instagram', auth, async (req, res) => {
 // ✅ Récupérer le nombre de followers
 router.get('/followers', auth, checkSubscription, trialCheck, async (req, res) => {
   const axios = require('axios');
+
+  // Sécurisation: bloquer si le token est absent/vidé/"null"
+  const tokenValue = (req.user.instagramToken || '').trim();
+  if (!tokenValue || tokenValue.toLowerCase() === 'null') {
+    return res.status(400).json({
+      message: 'Instagram token manquant. Veuillez connecter votre compte Instagram.'
+    });
+  }
+
   try {
     const response = await axios.get('https://graph.instagram.com/me', {
       params: {
         fields: 'username,followers_count',
-        access_token: req.user.instagramToken,
+        access_token: tokenValue,
       },
     });
     res.json({ ...response.data, username: req.user.username });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur lors de la récupération des followers' });
+    console.error('Erreur IG Graph:', err?.response?.data || err.message);
+    // Si le token est invalide/expiré, 401 est plus explicite
+    const status = err?.response?.status === 400 || err?.response?.status === 401 ? 401 : 500;
+    res.status(status).json({ message: 'Erreur lors de la récupération des followers' });
   }
 });
 
