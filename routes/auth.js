@@ -239,14 +239,19 @@ router.get('/followers', auth, checkSubscription, trialCheck, async (req, res) =
         access_token: tokenValue,
       },
     });
-    res.json({ ...response.data, username: req.user.username });
+
+    res.json({
+      igUsername: response.data.username,          // 👈 Username Instagram
+      followersCount: response.data.followers_count, // 👈 Followers Instagram
+    });
+
   } catch (err) {
     console.error('Erreur IG Graph:', err?.response?.data || err.message);
-    // Si le token est invalide/expiré, 401 est plus explicite
     const status = err?.response?.status === 400 || err?.response?.status === 401 ? 401 : 500;
     res.status(status).json({ message: 'Erreur lors de la récupération des followers' });
   }
 });
+
 
 // ✅ Obtenir les infos du profil
 router.get('/me', auth, async (req, res) => {
