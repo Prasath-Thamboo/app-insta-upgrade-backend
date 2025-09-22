@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const mongoose = require('mongoose');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -43,12 +44,20 @@ app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', trialRoutes);
 
+// ✅ Route de santé avec état Mongo
+app.get('/api/health', (req, res) => {
+  const mongoState = mongoose.connection.readyState; // 0=disconnected,1=connected,2=connecting,3=disconnecting
+  let dbStatus = 'disconnected';
+  if (mongoState === 1) dbStatus = 'connected';
+  else if (mongoState === 2) dbStatus = 'connecting';
+  else if (mongoState === 3) dbStatus = 'disconnecting';
 
-// Route de santé
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({
+    status: 'ok',
+    db: dbStatus,
+    timestamp: new Date().toISOString()
+  });
 });
-
 
 // ✅ Route Followers protégée
 app.get('/api/followers', auth, async (req, res) => {
