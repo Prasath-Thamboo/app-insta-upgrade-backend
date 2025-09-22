@@ -74,4 +74,4 @@ jobs:
           RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
         run: |
           curl -fsS "$RENDER_DEPLOY_HOOK"
-          echo "✅ Hook envoyé à Render."
+          echo "✅ Hook envoyé à Render"
